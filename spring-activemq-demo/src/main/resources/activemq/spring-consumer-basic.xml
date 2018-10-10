@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 查找最新的schemaLocation 访问 http://www.springframework.org/schema/ -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:amq="http://activemq.apache.org/schema/core"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans   
+        http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+        http://www.springframework.org/schema/context   
+        http://www.springframework.org/schema/context/spring-context-3.1.xsd
+        http://www.springframework.org/schema/jms
+        http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+        http://activemq.apache.org/schema/core
+        http://activemq.apache.org/schema/core/activemq-core-5.8.0.xsd">
+
+	
+	<!-- <amq:redeliveryPolicy id="redeliveryPolicy" destination="#defaultDestination" 
+		redeliveryDelay="100" maximumRedeliveries="4" /> -->
+
+	<!-- Wait 15 seconds first re-delivery, then 45, 135, 405, 1215, 3645 seconds -->
+	<bean id="amqRedeliveryPolicyConsumer" class="org.apache.activemq.RedeliveryPolicy">
+		<!-- 重连时间间隔递增倍数，只有值大于1和启用useExpone -->
+		<property name="backOffMultiplier" value="2" />
+		<!-- 初始重发延迟时间 -->
+		<property name="initialRedeliveryDelay" value="5000" />
+		<!-- 最大重传次数，达到最大重连次数后抛出异常。为-1时不限制次数，为0时表示不进行重传。 -->
+		<property name="maximumRedeliveries" value="6" />
+		<property name="queue" value="*" />
+		<property name="redeliveryDelay" value="5000" />
+		<!-- 启用指数倍数递增的方式增加延迟时间。 -->
+		<property name="useExponentialBackOff" value="true" />
+        <property name="useCollisionAvoidance" value="true" />
+        <property name="collisionAvoidancePercent" value="15" />
+	</bean>
+	
+	<!-- PreFetch预拉取 -->
+	<bean id="amqPrefetchPolicyConsumer" class="org.apache.activemq.ActiveMQPrefetchPolicy">
+		<property name="queuePrefetch" value="100" />
+		<property name="topicPrefetch" value="100" />
+	</bean>
+
+
+	<bean id="jmsTransactionManagerConsumer"
+	        class="org.springframework.jms.connection.JmsTransactionManager">
+	    <!-- can also refer to amq.connectionFactory -->
+	    <property name="connectionFactory" ref="jmsConnectionFactoryConsumer" />
+	</bean>
+
+    <!-- 配置线程池 -->
+    <bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+        <!-- 核心线程数，默认为1 -->
+        <property name="corePoolSize" value="1" />
+        <!-- 最大线程数，默认为Integer.MAX_VALUE -->
+        <property name="maxPoolSize" value="2" />
+        <!-- 队列最大长度，一般需要设置值>=notifyScheduledMainExecutor.maxNum；默认为Integer.MAX_VALUE -->
+        <property name="queueCapacity" value="1000" />
+        <!-- 线程池维护线程所允许的空闲时间，默认为60s -->
+        <property name="keepAliveSeconds" value="300" />
+        <!-- 线程池对拒绝任务（无线程可用）的处理策略，目前只支持AbortPolicy、CallerRunsPolicy；默认为后者 -->
+        <property name="rejectedExecutionHandler">
+            <!--
+            AbortPolicy:直接抛出java.util.concurrent.RejectedExecutionException异常
+            CallerRunsPolicy:主线程直接执行该任务，执行完之后尝试添加下一个任务到线程池中，可以有效降低向线程池内添加任务的速度
+            DiscardOldestPolicy:抛弃旧的任务、暂不支持；会导致被丢弃的任务无法再次被执行
+            DiscardPolicy:抛弃当前任务、暂不支持；会导致被丢弃的任务无法再次被执行
+            -->
+            <bean class="java.util.concurrent.ThreadPoolExecutor$CallerRunsPolicy" />
+        </property>
+    </bean>
+	
+	  <!-- 真正可以产生Connection的ConnectionFactory，由对应的 JMS服务厂商提供-->
+    <bean id="amqConnectionFactoryConsumer" class="org.apache.activemq.ActiveMQConnectionFactory">
+        <property name="brokerURL" value="${activemq.broker.url}"/>
+        <property name="userName" value="admin" />
+		<property name="password" value="admin" />
+		<property name="useAsyncSend" value="true"/>
+		<property name="optimizeAcknowledge" value="false" />
+		<property name="optimizeAcknowledgeTimeOut" value="300" />
+		<property name="redeliveryPolicy" ref="amqRedeliveryPolicyConsumer" />
+		<property name="prefetchPolicy" ref="amqPrefetchPolicyConsumer" />
+    </bean>    
+    
+    <!-- Spring用于管理真正的ConnectionFactory的ConnectionFactory -->
+    <bean id="jmsConnectionFactoryConsumer" class="org.springframework.jms.connection.SingleConnectionFactory">
+        <!-- 目标ConnectionFactory对应真实的可以产生JMS Connection的ConnectionFactory -->
+        <property name="targetConnectionFactory" ref="amqConnectionFactoryConsumer"/>
+    </bean> 
+
+</beans>  

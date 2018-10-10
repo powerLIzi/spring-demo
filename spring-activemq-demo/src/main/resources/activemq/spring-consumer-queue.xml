@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 查找最新的schemaLocation 访问 http://www.springframework.org/schema/ -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:amq="http://activemq.apache.org/schema/core"
+	xmlns:jms="http://www.springframework.org/schema/jms"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans   
+        http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+        http://www.springframework.org/schema/context   
+        http://www.springframework.org/schema/context/spring-context-3.1.xsd
+        http://www.springframework.org/schema/jms
+        http://www.springframework.org/schema/jms/spring-jms-3.1.xsd
+        http://activemq.apache.org/schema/core
+        http://activemq.apache.org/schema/core/activemq-core-5.8.0.xsd">
+
+	<!-- ====Consumer start==== -->
+
+	<!--这个是P2P队列目的地 -->
+    <bean id="crmDestination" class="org.apache.activemq.command.ActiveMQQueue">
+        <constructor-arg value="${crm.queue.subject}"></constructor-arg>
+    </bean>
+    <!--房源备件队列目的地 -->
+    <bean id="credentialDestination" class="org.apache.activemq.command.ActiveMQQueue">
+        <constructor-arg value="${house.credential.subject}"></constructor-arg>
+    </bean>
+
+	<!-- 消息监听容器 -->
+    <bean id="listenerContainerQueuer2"
+          class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="jmsConnectionFactoryConsumer" />
+        <property name="destination" ref="crmDestination" />
+        <property name="concurrentConsumers" value="1" />
+        <property name="maxConcurrentConsumers" value="5" />
+        <property name="messageListener" ref="crmTaskQueueListener" />
+        <!-- 当设置pubSubNoLocal为true时，消费者不会接收来自同一个连接的消息。因为我们在上面的配置文件中定义了连接池的最大连接数为1，因此每次使用的连接都是同一个连接，所以就消费者就接收不到消息。只有当pubSubNoLocal为false时，消费者才能接收到来自同一个连接的消息。 -->
+        <property name="pubSubNoLocal" value="false" />
+        <property name="pubSubDomain" value="false" />
+        <property name="taskExecutor" ref="taskExecutor" />
+        <property name="sessionTransacted" value="true" />
+        <property name="transactionManager" ref="jmsTransactionManagerConsumer" />
+        <property name="cacheLevel" value="4" />
+    </bean>
+
+    <!-- 备件消息监听容器 -->
+    <bean id="listenerContainerQueuer3"
+          class="org.springframework.jms.listener.DefaultMessageListenerContainer">
+        <property name="connectionFactory" ref="jmsConnectionFactoryConsumer" />
+        <property name="destination" ref="credentialDestination" />
+        <property name="concurrentConsumers" value="1" />
+        <property name="maxConcurrentConsumers" value="5" />
+        <property name="messageListener" ref="credentialTaskQueueListener" />
+        <!-- 当设置pubSubNoLocal为true时，消费者不会接收来自同一个连接的消息。因为我们在上面的配置文件中定义了连接池的最大连接数为1，因此每次使用的连接都是同一个连接，所以就消费者就接收不到消息。只有当pubSubNoLocal为false时，消费者才能接收到来自同一个连接的消息。 -->
+        <property name="pubSubNoLocal" value="false" />
+        <property name="pubSubDomain" value="false" />
+        <property name="taskExecutor" ref="taskExecutor" />
+        <property name="sessionTransacted" value="true" />
+        <property name="transactionManager" ref="jmsTransactionManagerConsumer" />
+        <property name="cacheLevel" value="4" />
+    </bean>
+
+
+    <!-- ====Consumer end==== -->
+
+</beans>  

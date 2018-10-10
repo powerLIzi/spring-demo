@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+		http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+
+    <context:property-placeholder location="classpath:config-kafka.properties" ignore-unresolvable="true"/>
+
+    <!--**********************************kafka producer配置************************************-->
+    <bean id="kafkaProducerProperties_ares" class="java.util.HashMap">
+        <constructor-arg>
+            <map>
+                <entry key="bootstrap.servers" value="${kafka.bootstrap.servers.ares}"/>
+                <entry key="retries" value="5"/>
+                <entry key="batch.size" value="16384"/>
+                <entry key="linger.ms" value="1"/>
+                <entry key="buffer.memory" value="33554432"/>
+                <entry key="key.serializer" value="org.apache.kafka.common.serialization.IntegerSerializer"/>
+                <entry key="value.serializer" value="org.apache.kafka.common.serialization.StringSerializer"/>
+            </map>
+        </constructor-arg>
+    </bean>
+
+    <!-- 创建kafkatemplate需要使用的producerfactory bean -->
+    <bean id="kafkaproducerFactory_ares" class="org.springframework.kafka.core.DefaultKafkaProducerFactory">
+        <constructor-arg>
+            <ref bean="kafkaProducerProperties_ares"/>
+        </constructor-arg>
+    </bean>
+
+    <!-- 创建kafkatemplate bean，使用的时候，只需要注入这个bean，即可使用template的send消息方法 -->
+    <bean id="aresKafkaTemplate" class="org.springframework.kafka.core.KafkaTemplate">
+        <constructor-arg ref="kafkaproducerFactory_ares"/>
+        <constructor-arg value="true"/>
+    </bean>
+
+    <!--**********************************kafka producer配置************************************-->
+    <bean id="kafkaProducerProperties_zeus" class="java.util.HashMap">
+        <constructor-arg>
+            <map>
+                <entry key="bootstrap.servers" value="${kafka.bootstrap.servers.zeus}"/>
+                <entry key="retries" value="5"/>
+                <entry key="batch.size" value="16384"/>
+                <entry key="linger.ms" value="1"/>
+                <entry key="buffer.memory" value="33554432"/>
+                <entry key="key.serializer" value="org.apache.kafka.common.serialization.IntegerSerializer"/>
+                <entry key="value.serializer" value="org.apache.kafka.common.serialization.StringSerializer"/>
+            </map>
+        </constructor-arg>
+    </bean>
+
+    <!-- 创建kafkatemplate需要使用的producerfactory bean -->
+    <bean id="kafkaproducerFactory_zeus" class="org.springframework.kafka.core.DefaultKafkaProducerFactory">
+        <constructor-arg>
+            <ref bean="kafkaProducerProperties_zeus"/>
+        </constructor-arg>
+    </bean>
+
+    <!-- 创建kafkatemplate bean，使用的时候，只需要注入这个bean，即可使用template的send消息方法 -->
+    <bean id="zeusKafkaTemplate" class="org.springframework.kafka.core.KafkaTemplate">
+        <constructor-arg ref="kafkaproducerFactory_zeus"/>
+        <constructor-arg value="true"/>
+    </bean>
+
+</beans>

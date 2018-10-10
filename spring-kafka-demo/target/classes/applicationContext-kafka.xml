@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+		http://www.springframework.org/schema/beans
+		http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+    <context:component-scan base-package="com.tang.demo.kafka"/>
+
+    <context:property-placeholder location="classpath:config-kafka.properties" ignore-unresolvable="true"/>
+    <!--**********************************kafka consumer配置************************************-->
+    <!-- 定义consumer的参数 -->
+    <bean id="kafkaConsumerProperties" class="java.util.HashMap">
+        <constructor-arg>
+            <map>
+                <entry key="bootstrap.servers" value="${kafka.bootstrap.servers.crawl}"/>
+                <entry key="group.id" value="crm"/>
+                <entry key="enable.auto.commit" value="true"/>
+                <entry key="auto.commit.interval.ms" value="1000"/>
+                <entry key="session.timeout.ms" value="15000"/>
+                <entry key="auto.offset.reset" value="latest"/>
+                <entry key="key.deserializer"
+                       value="org.apache.kafka.common.serialization.StringDeserializer"/>
+                <entry key="value.deserializer"
+                       value="org.apache.kafka.common.serialization.StringDeserializer"/>
+            </map>
+        </constructor-arg>
+    </bean>
+
+    <!-- consumerFactory bean -->
+    <bean id="kafkaConsumerFactory"
+          class="org.springframework.kafka.core.DefaultKafkaConsumerFactory">
+        <constructor-arg>
+            <ref bean="kafkaConsumerProperties"/>
+        </constructor-arg>
+    </bean>
+
+    <!--**********************************扒房消息处理************************************-->
+
+    <!-- 扒房消息处理监听器 -->
+    <bean id="messageListner" class="com.tang.demo.kafka.CrawlMessageListner"/>
+
+    <!-- 扒房消息处理容器配置 -->
+    <bean id="containerPropertiesCrawl"
+          class="org.springframework.kafka.listener.config.ContainerProperties">
+        <constructor-arg value="${kafka.topic.crawl}"/>
+        <property name="messageListener" ref="messageListner"/>
+    </bean>
+
+    <!-- 扒房消息处理监听容器 -->
+    <bean id="messageListenerContainerCrawl"
+          class="org.springframework.kafka.listener.KafkaMessageListenerContainer"
+          init-method="doStart">
+        <constructor-arg ref="kafkaConsumerFactory"/>
+        <constructor-arg ref="containerPropertiesCrawl"/>
+    </bean>
+
+    <!--**********************************房源消息************************************-->
+
+    <!-- 房源消息处理容器配置 -->
+    <bean id="containerPropertiesHouse"
+          class="org.springframework.kafka.listener.config.ContainerProperties">
+        <constructor-arg value="${kafka.topic.house}"/>
+        <property name="messageListener" ref="messageListner"/>
+    </bean>
+
+    <!-- 房源消息处理监听容器 -->
+    <bean id="messageListenerContainerHouse"
+          class="org.springframework.kafka.listener.KafkaMessageListenerContainer"
+          init-method="doStart">
+        <constructor-arg ref="kafkaConsumerFactory"/>
+        <constructor-arg ref="containerPropertiesHouse"/>
+    </bean>
+
+    <!--**********************************备件消息************************************-->
+    <!-- 扒房消息处理容器配置 -->
+    <bean id="containerPropertiesCredential"
+          class="org.springframework.kafka.listener.config.ContainerProperties">
+        <constructor-arg value="${kafka.topic.credential}"/>
+        <property name="messageListener" ref="messageListner"/>
+    </bean>
+
+    <!-- 扒房消息处理监听容器 -->
+    <bean id="messageListenerContainerCredential"
+          class="org.springframework.kafka.listener.KafkaMessageListenerContainer"
+          init-method="doStart">
+        <constructor-arg ref="kafkaConsumerFactory"/>
+        <constructor-arg ref="containerPropertiesCredential"/>
+    </bean>
+
+    <!--**********************************kafka producer配置************************************-->
+    <bean id="kafkaProducerProperties" class="java.util.HashMap">
+        <constructor-arg>
+            <map>
+                <entry key="bootstrap.servers" value="${kafka.bootstrap.servers.crawl}"/>
+                <entry key="retries" value="5"/>
+                <entry key="batch.size" value="16384"/>
+                <entry key="linger.ms" value="1"/>
+                <entry key="buffer.memory" value="33554432"/>
+                <entry key="key.serializer" value="org.apache.kafka.common.serialization.IntegerSerializer"/>
+                <entry key="value.serializer" value="org.apache.kafka.common.serialization.StringSerializer"/>
+            </map>
+        </constructor-arg>
+    </bean>
+
+    <!-- 创建kafkatemplate需要使用的producerfactory bean -->
+    <bean id="kafkaproducerFactory" class="org.springframework.kafka.core.DefaultKafkaProducerFactory">
+        <constructor-arg>
+            <ref bean="kafkaProducerProperties"/>
+        </constructor-arg>
+    </bean>
+
+    <!-- 创建kafkatemplate bean，使用的时候，只需要注入这个bean，即可使用template的send消息方法 -->
+    <bean id="KafkaTemplate" class="org.springframework.kafka.core.KafkaTemplate">
+        <constructor-arg ref="kafkaproducerFactory"/>
+        <constructor-arg value="true"/>
+    </bean>
+
+</beans>
